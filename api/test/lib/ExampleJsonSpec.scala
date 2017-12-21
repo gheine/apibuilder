@@ -3,7 +3,7 @@ package lib
 import io.apibuilder.spec.v0.models._
 import io.apibuilder.spec.v0.models.json._
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
-import play.api.libs.json.{JsNull, JsNumber, JsString, Json}
+import play.api.libs.json.{JsBoolean, JsNull, JsNumber, JsString, Json}
 
 class ExampleJsonSpec  extends PlaySpec
   with OneAppPerSuite
@@ -337,6 +337,43 @@ class ExampleJsonSpec  extends PlaySpec
         "discriminator" -> "int",
         "value" -> 1
       )
+    )
+  }
+
+  "union type (no discriminator) containing an array" in {
+    val svc = service.withUnion("array_union", _.withType("[integer]"))
+
+    ExampleJson.allFields(svc).sample("array_union").get must equal(
+      Json.obj(
+        "[integer]" -> Json.obj("value" -> Json.arr(JsNumber(1)))
+      )
+    )
+  }
+
+  "union type (w/ discriminator) containing an array" in {
+    val svc = service.withUnion("array_union", _.withType("[boolean]"), Some("discriminator"))
+
+    ExampleJson.allFields(svc).sample("array_union").get must equal(
+      Json.obj(
+        "discriminator" -> "[boolean]",
+        "value" -> Json.arr(JsBoolean(true))
+      )
+    )
+  }
+
+  "union type (no discriminator) containing a map" in {
+    val svc = service.withUnion("map_union", _.withType("map[boolean]"))
+
+    ExampleJson.allFields(svc).sample("map_union").get must equal(
+      Json.obj("map[boolean]" -> Json.obj("value" -> Json.obj("foo" -> JsBoolean(true))))
+    )
+  }
+
+  "union type (w/ discriminator) containing a map" in {
+    val svc = service.withUnion("map_union", _.withType("map[integer]"), Some("discriminator"))
+
+    ExampleJson.allFields(svc).sample("map_union").get must equal(
+      Json.obj("discriminator" -> "map[integer]", "value" -> Json.obj("foo" -> JsNumber(1)))
     )
   }
 

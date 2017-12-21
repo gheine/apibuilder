@@ -95,13 +95,7 @@ case class ExampleJson(service: Service, selection: Selection) {
     unionType.orElse(union.types.headOption).fold {
       Json.obj(): JsValue
     } { unionType =>
-      mockValue(TextDatatype.parse(unionType.`type`), Some(union -> unionType)) match {
-        case js: JsBoolean => primitiveUnionWrapper(union, unionType, js)
-        case js: JsNumber => primitiveUnionWrapper(union, unionType, js)
-        case js: JsString => primitiveUnionWrapper(union, unionType, js)
-        case JsNull => primitiveUnionWrapper(union, unionType, JsNull)
-        case other => other
-      }
+      mockValue(TextDatatype.parse(unionType.`type`), Some(union -> unionType))
     }
   }
 
@@ -123,8 +117,12 @@ case class ExampleJson(service: Service, selection: Selection) {
       case Nil => JsNull
       case TextDatatype.Singleton(one) :: Nil => singleton(one, parentUnion)
       case TextDatatype.Singleton(one) :: _ => sys.error("Singleton must be leaf")
-      case TextDatatype.List :: rest => Json.toJson(Seq(mockValue(rest, None)))
-      case TextDatatype.Map :: rest => Json.obj("foo" -> mockValue(rest, None))
+      case TextDatatype.List :: rest =>
+        val obj: JsValue = Json.arr(mockValue(rest, None))
+        parentUnion.fold(obj){ case (union, unionType) => primitiveUnionWrapper(union, unionType, obj)}
+      case TextDatatype.Map :: rest =>
+        val obj: JsValue = Json.obj("foo" -> mockValue(rest, None))
+        parentUnion.fold(obj){ case (union, unionType) => primitiveUnionWrapper(union, unionType, obj)}
     }
   }
 
@@ -148,7 +146,7 @@ case class ExampleJson(service: Service, selection: Selection) {
         }
       }
 
-      case Some(p) => mockPrimitive(p)
+      case Some(p) => mockPrimitive(p, parentUnion)
     }
   }
 
@@ -213,7 +211,7 @@ case class ExampleJson(service: Service, selection: Selection) {
           case Some(default) => primitiveExample(p, default)
           case None => {
             field.example match {
-              case None => mockPrimitive(p)
+              case None => mockPrimitive(p, None)
               case Some(ex) => primitiveExample(p, ex)
             }
           }
@@ -222,8 +220,8 @@ case class ExampleJson(service: Service, selection: Selection) {
     }
   }
 
-  private[this] def mockPrimitive(p: Primitives): JsValue = {
-    p match {
+  private[this] def mockPrimitive(p: Primitives, parentUnion: Option[(Union, UnionType)]): JsValue = {
+    val obj: JsValue = p match {
       case Primitives.Boolean => JsBoolean(true)
       case Primitives.Double => JsNumber(1.0)
       case Primitives.Integer => JsNumber(1)
@@ -240,6 +238,7 @@ case class ExampleJson(service: Service, selection: Selection) {
       case Primitives.Unit => JsNull
       case Primitives.Uuid => JsString(UUID.randomUUID.toString)
     }
+    parentUnion.fold(obj){ case (union, unionType) => primitiveUnionWrapper(union, unionType, obj)}
   }
 
   private[this] def primitiveExample(p: Primitives, ex: String): JsValue = {

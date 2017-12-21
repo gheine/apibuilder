@@ -258,29 +258,7 @@ case class ServiceSpecValidator(
 
     val duplicates = dupsError("Union", service.unions.map(_.name))
 
-    nameErrors ++ typeErrors ++ invalidTypes ++ unionTypeErrors ++ duplicates ++ validateUnionTypeDiscriminatorValues()
-  }
-
-  private[this] def validateUnionTypeDiscriminatorValues(): Seq[String] = {
-    validateUnionTypeDiscriminatorValuesValidNames() ++ validateUnionTypeDiscriminatorValuesAreDistinct()
-  }
-
-  private[this] def validateUnionTypeDiscriminatorValuesValidNames(): Seq[String] = {
-    service.unions.flatMap { union =>
-      union.types.flatMap { unionType =>
-        unionType.discriminatorValue match {
-          case None => None
-          case Some(value) => {
-            Text.validateName(value) match {
-              case Nil => None
-              case errs => {
-                Some(s"Union[${union.name}] type[${unionType.`type`}] discriminator_value[${value}] is invalid: ${errs.mkString(" and ")}")
-              }
-            }
-          }
-        }
-      }
-    }
+    nameErrors ++ typeErrors ++ invalidTypes ++ unionTypeErrors ++ duplicates ++ validateUnionTypeDiscriminatorValuesAreDistinct()
   }
 
   private[this] def validateUnionTypeDiscriminatorValuesAreDistinct(): Seq[String] = {

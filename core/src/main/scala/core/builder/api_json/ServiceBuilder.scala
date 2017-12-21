@@ -341,7 +341,7 @@ case class ServiceBuilder(
             deprecation = it.deprecation.map(DeprecationBuilder(_)),
             default = it.default,
             discriminatorValue = Some(
-              it.discriminatorValue.getOrElse(typ.name)
+              it.discriminatorValue.getOrElse(typ.label)
             )
           )
         },
